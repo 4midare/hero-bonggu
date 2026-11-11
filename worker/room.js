@@ -70,11 +70,12 @@ export class Room {
       case 'm': // 이동
         if (Number.isFinite(m.x) && Number.isFinite(m.z)) { p.x = m.x; p.z = m.z; }
         if (Number.isFinite(m.ry)) p.ry = m.ry;
-        p.anim = m.anim === 'walk' || m.anim === 'run' ? m.anim : 'idle';
+        p.anim = ['walk', 'run', 'sit', 'floor'].includes(m.anim) ? m.anim : 'idle';
         break;
       case 'treat': p.treat = !!m.on; break;
       case 'pet': actions.pet(this.sim, p, String(m.dog), emit); break;
       case 'cmd': actions.command(this.sim, p, String(m.type), emit); break;
+      case 'come': actions.come(this.sim, p, emit); break;
       case 'give': actions.give(this.sim, p, String(m.dog), emit); break;
       case 'feed': actions.feed(this.sim, p, emit); break;
       case 'chat': {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ROOM, SPAWN, BOWL, DOGS, RANGE, PLAYER_RADIUS, isFree, dist } from '../shared/world.js';
+import { ROOM, SPAWN, BOWL, DOGS, RANGE, PLAYER_RADIUS, isFree, pathFree, dist } from '../shared/world.js';
 import { buildRoom } from './scene/room.js';
 import { buildOutside } from './scene/outside.js';
 import { createDog } from './scene/dogs.js';
@@ -36,7 +36,7 @@ for (const id of Object.keys(DOGS)) {
 }
 
 // ---------- 플레이어 ----------
-const me = { id: null, name: '', color: '#ff8c42', x: SPAWN.x + (Math.random() - 0.5) * 1.6, z: SPAWN.z + (Math.random() - 0.5) * 0.8, ry: Math.PI, anim: 'idle', treat: false, avatar: null };
+const me = { id: null, name: '', color: '#ff8c42', x: SPAWN.x + (Math.random() - 0.5) * 1.6, z: SPAWN.z + (Math.random() - 0.5) * 0.8, ry: Math.PI, anim: 'idle', treat: false, avatar: null, sit: null, auto: null };
 const others = new Map(); // id -> { id, name, color, avatar, tx, tz, try, anim, treat }
 
 function addOther(p) {
@@ -115,6 +115,7 @@ function onEvent(ev) {
     case 'obey': fx.spawn(dogPos(ev.dog), '✨', 2); if (ev.by === me.id) ui.toast(`${dn}: ${ev.cmd === 'sit' ? '앉아' : '엎드려'} 성공!`); break;
     case 'ignore': fx.spawn(dogPos(ev.dog), '❓', 1); if (ev.by === me.id) ui.toast(`${dn}가 못 들은 척해요… (기분이 안 좋아요)`); break;
     case 'feed': fx.spawn({ x: BOWL.x, y: 0.4, z: BOWL.z }, '🥣', 1); ui.sys(`${who} 사료를 채웠어요`); break;
+    case 'come': fx.spawn(dogPos(ev.dog), '❗', 1); if (ev.by === me.id) ui.toast(`${dn}가 달려와요!`); break;
   }
 }
 
@@ -140,6 +141,27 @@ ui.input.addEventListener('keydown', (e) => {
 });
 ui.input.addEventListener('blur', () => { ui.closeChat(); input.typing = false; });
 
+// ---------- 앉기 ----------
+const SOFA = { xMin: 1.45, xMax: 3.55, seatZ: 3.5, frontZ: 2.6 };
+function dogOf(obj) { let o = obj; while (o) { if (o.userData?.dogId) return o.userData.dogId; o = o.parent; } return null; }
+function goSitOnSofa(x) {
+  const sx = Math.max(SOFA.xMin, Math.min(SOFA.xMax, x));
+  if (me.sit === 'sofa') { me.x = sx; me.avatar.mesh.position.x = sx; return; }
+  if (me.sit) standUp();
+  // 두 구간으로 걷는다: z 먼저 맞추고 x, 안 되면 x 먼저
+  const R = PLAYER_RADIUS, fz = SOFA.frontZ;
+  const a = [{ x: me.x, z: fz }, { x: sx, z: fz }], b = [{ x: sx, z: me.z }, { x: sx, z: fz }];
+  const ok = (w) => pathFree(me.x, me.z, w[0].x, w[0].z, R) && pathFree(w[0].x, w[0].z, w[1].x, w[1].z, R);
+  const route = ok(a) ? a : ok(b) ? b : null;
+  if (!route) { ui.toast('소파 앞까지 길이 막혀 있어요. 조금 걸어간 뒤 다시 눌러보세요'); return; }
+  me.auto = { wps: route, then: 'sofa', stuck: 0 };
+  ui.toast('소파로 가는 중…');
+}
+function standUp() {
+  if (me.sit === 'sofa') { me.z = SOFA.frontZ; }
+  me.sit = null; me.auto = null;
+}
+
 // ---------- 상호작용 ----------
 function nearestDog() {
   let best = null, bd = RANGE.pet;
@@ -151,12 +173,15 @@ function handleActions() {
   const clicks = input.takeClicks();
   if (!net) return;
   const near = nearestDog();
-  // 클릭으로 강아지 쓰다듬기
-  if (clicks.length && near) {
+  // 클릭: 강아지면 쓰다듬기, 소파면 걸어가서 앉기
+  if (clicks.length) {
     const ray = new THREE.Raycaster(); const c = clicks[0];
     ray.setFromCamera(new THREE.Vector2((c.x / innerWidth) * 2 - 1, -(c.y / innerHeight) * 2 + 1), camera);
-    const hit = ray.intersectObject(near.mesh, true)[0];
-    if (hit) keys.push('KeyE');
+    const hit = ray.intersectObjects(scene.children, true).find(h => h.object.userData.dogId || h.object.userData.sofa || h.object.parent?.userData?.dogId || h.object.parent?.parent?.userData?.dogId);
+    const dogHit = hit && dogOf(hit.object);
+    if (dogHit && near && dogHit === near.id) keys.push('KeyE');
+    else if (dogHit) ui.toast(`${DOGS[dogHit].name}에게 더 가까이 가세요`);
+    else if (hit?.object.userData.sofa) goSitOnSofa(hit.point.x);
   }
   for (const k of keys) {
     if (k === 'KeyE') {
@@ -165,6 +190,8 @@ function handleActions() {
     } else if (k === 'Digit1') { me.treat = !me.treat; net.send({ t: 'treat', on: me.treat }); ui.treatButton(me.treat); ui.toast(me.treat ? '간식을 꺼냈어요 🦴 강아지들이 올 거예요' : '간식을 넣었어요'); }
     else if (k === 'Digit2') net.send({ t: 'cmd', type: 'sit' });
     else if (k === 'Digit3') net.send({ t: 'cmd', type: 'down' });
+    else if (k === 'Digit4') { net.send({ t: 'come' }); me.avatar.say('히로! 봉구! 이리 와~'); }
+    else if (k === 'KeyC') { if (me.sit) standUp(); else { me.auto = null; me.sit = 'floor'; ui.toast('바닥에 앉았어요. 움직이면 일어나요'); } }
     else if (k === 'KeyF') { if (dist(me.x, me.z, BOWL.x, BOWL.z) > RANGE.bowl) ui.toast('사료 그릇 가까이 가세요 (창가 왼쪽)'); else net.send({ t: 'feed' }); }
   }
   // 안내 문구
@@ -178,9 +205,30 @@ let sendAcc = 0, lastSent = '';
 function movePlayer(dt) {
   if (!me.avatar) return;
   const { f, r, run } = input.typing ? { f: 0, r: 0, run: false } : input.axis();
-  const moving = f !== 0 || r !== 0;
+  let moving = f !== 0 || r !== 0;
   const speed = run ? 4.8 : 2.6;
-  if (moving) {
+  if (moving && (me.sit || me.auto)) standUp();
+  // 소파로 자동 이동
+  if (me.auto && !moving) {
+    const wp = me.auto.wps[0];
+    const dx = wp.x - me.x, dz = wp.z - me.z, len = Math.hypot(dx, dz);
+    if (len < 0.06) {
+      me.auto.wps.shift();
+      if (me.auto.wps.length === 0) {
+        if (me.auto.then === 'sofa') { me.x = wp.x; me.z = SOFA.seatZ; me.ry = Math.PI; me.sit = 'sofa'; ui.toast('소파에 앉았어요 🛋️ 움직이면 일어나요'); }
+        me.auto = null;
+      }
+    } else {
+      const step = Math.min(len, 2.6 * dt), nx = me.x + (dx / len) * step, nz = me.z + (dz / len) * step;
+      let progressed = false;
+      if (isFree(nx, me.z, PLAYER_RADIUS)) { me.x = nx; progressed = true; }
+      if (isFree(me.x, nz, PLAYER_RADIUS)) { me.z = nz; progressed = true; }
+      me.ry = Math.atan2(dx, dz); moving = true;
+      me.auto.stuck = progressed ? 0 : me.auto.stuck + dt;
+      if (me.auto.stuck > 0.6) { me.auto = null; ui.toast('길이 막혔어요. 소파 앞으로 걸어가 다시 눌러보세요'); }
+    }
+  }
+  if (f !== 0 || r !== 0) {
     const yaw = input.cam.yaw;
     // 카메라 기준 방향
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
@@ -192,7 +240,7 @@ function movePlayer(dt) {
     if (isFree(me.x, nz, PLAYER_RADIUS)) me.z = nz;
     me.ry = Math.atan2(dx, dz);
   }
-  me.anim = moving ? (run ? 'run' : 'walk') : 'idle';
+  me.anim = me.sit === 'sofa' ? 'sit' : me.sit === 'floor' ? 'floor' : moving ? (run ? 'run' : 'walk') : 'idle';
   me.avatar.mesh.position.set(me.x, 0, me.z);
   me.avatar.mesh.rotation.y = THREE.MathUtils.lerp(me.avatar.mesh.rotation.y, me.ry + Math.round((me.avatar.mesh.rotation.y - me.ry) / (Math.PI * 2)) * Math.PI * 2, 1 - Math.exp(-14 * dt));
   me.avatar.update(dt, me.anim, me.treat);
@@ -231,7 +279,7 @@ function updateDogs(dt) {
 // ---------- 카메라 ----------
 function updateCamera(dt) {
   const { yaw, pitch, dist: cd } = input.cam;
-  const tx = me.x, ty = 1.35, tz = me.z;
+  const tx = me.x, ty = me.sit === 'floor' ? 0.8 : me.sit === 'sofa' ? 1.15 : 1.35, tz = me.z;
   let cx = tx + Math.sin(yaw) * Math.cos(pitch) * cd, cy = ty + Math.sin(pitch) * cd, cz = tz + Math.cos(yaw) * Math.cos(pitch) * cd;
   // 벽 밖으로 못 나가게
   cx = Math.max(ROOM.minX + 0.25, Math.min(ROOM.maxX - 0.25, cx));

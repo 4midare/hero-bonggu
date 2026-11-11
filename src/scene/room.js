@@ -37,7 +37,7 @@ export function buildRoom(scene) {
   g.add(box(T, H, D, wall, maxX + T / 2, H / 2, 0));           // 오른쪽
   g.add(box(W + T * 2, H, T, wall, 0, H / 2, maxZ + T / 2));   // 앞(카메라 뒤)
   // 뒤쪽 벽: 창문 구멍
-  const wx0 = -3.4, wx1 = 3.4, wy0 = 0.75, wy1 = 2.55;
+  const wx0 = -4.8, wx1 = 4.8, wy0 = 0.45, wy1 = 2.8;
   const bz = minZ - T / 2;
   g.add(box(wx0 - minX, H, T, wall, (minX + wx0) / 2, H / 2, bz));
   g.add(box(maxX - wx1, H, T, wall, (wx1 + maxX) / 2, H / 2, bz));
@@ -56,8 +56,8 @@ export function buildRoom(scene) {
   g.add(box(wx1 - wx0 + fw * 2, fw, T + 0.06, frame, 0, wy1, bz));
   g.add(box(fw, wy1 - wy0, T + 0.06, frame, wx0, (wy0 + wy1) / 2, bz));
   g.add(box(fw, wy1 - wy0, T + 0.06, frame, wx1, (wy0 + wy1) / 2, bz));
-  g.add(box(0.05, wy1 - wy0, T + 0.04, frame, 0, (wy0 + wy1) / 2, bz));
-  g.add(box(wx1 - wx0, 0.05, T + 0.04, frame, 0, (wy0 + wy1) / 2, bz));
+  for (const mx of [-1.6, 1.6]) g.add(box(0.05, wy1 - wy0, T + 0.04, frame, mx, (wy0 + wy1) / 2, bz));
+  g.add(box(wx1 - wx0, 0.05, T + 0.04, frame, 0, wy0 + (wy1 - wy0) * 0.62, bz));
   g.add(box(wx1 - wx0 + 0.5, 0.06, 0.32, felt('#e9e2d6'), 0, wy0 - 0.03, minZ + 0.1)); // 창턱
   const glass = new THREE.Mesh(
     new THREE.PlaneGeometry(wx1 - wx0, wy1 - wy0),
@@ -67,14 +67,16 @@ export function buildRoom(scene) {
 
   // 소파 (OBSTACLES.sofa: x 1.0~4.0, z 3.0~4.15)
   const sofaM = felt('#7fa6c4'), cushM = felt('#8fb3cf');
-  g.add(box(3.0, 0.42, 1.0, sofaM, 2.5, 0.21, 3.55));
-  g.add(box(3.0, 0.62, 0.26, sofaM, 2.5, 0.73, 4.0));
-  g.add(box(0.26, 0.66, 1.05, sofaM, 1.13, 0.33, 3.55));
-  g.add(box(0.26, 0.66, 1.05, sofaM, 3.87, 0.33, 3.55));
-  g.add(box(1.22, 0.16, 0.86, cushM, 1.88, 0.5, 3.48));
-  g.add(box(1.22, 0.16, 0.86, cushM, 3.12, 0.5, 3.48));
-  const pil = box(0.42, 0.4, 0.14, felt('#f2c6a0'), 1.75, 0.78, 3.82); pil.rotation.z = 0.15; g.add(pil);
-  g.add(box(0.42, 0.4, 0.14, felt('#f6dcb0'), 3.3, 0.78, 3.82));
+  const sofa = new THREE.Group(); g.add(sofa);
+  sofa.add(box(3.0, 0.42, 1.0, sofaM, 2.5, 0.21, 3.55));
+  sofa.add(box(3.0, 0.62, 0.26, sofaM, 2.5, 0.73, 4.0));
+  sofa.add(box(0.26, 0.66, 1.05, sofaM, 1.13, 0.33, 3.55));
+  sofa.add(box(0.26, 0.66, 1.05, sofaM, 3.87, 0.33, 3.55));
+  sofa.add(box(1.22, 0.16, 0.86, cushM, 1.88, 0.5, 3.48));
+  sofa.add(box(1.22, 0.16, 0.86, cushM, 3.12, 0.5, 3.48));
+  const pil = box(0.42, 0.4, 0.14, felt('#f2c6a0'), 1.75, 0.78, 3.82); pil.rotation.z = 0.15; sofa.add(pil);
+  sofa.add(box(0.42, 0.4, 0.14, felt('#f6dcb0'), 3.3, 0.78, 3.82));
+  sofa.traverse(o => { if (o.isMesh) o.userData.sofa = true; });
 
   // 러그 + 낮은 탁자 (OBSTACLES.table: x 1.9~3.1, z 1.5~2.1)
   const rug = new THREE.Mesh(new THREE.CircleGeometry(1.5, 40), felt('#e8cbc1'));
@@ -123,6 +125,15 @@ export function buildRoom(scene) {
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.09, 12, 32), felt(bedCol[id]));
     rim.rotation.x = Math.PI / 2; rim.position.set(b.x, 0.12, b.z); rim.castShadow = true; g.add(rim);
   }
+
+  // 봉구 방석 옆 장난감: 수박, 붕어빵, 소시지
+  const bb = BEDS.bonggu;
+  const melon = sphere(0.075, felt('#e5312b'), bb.x + 0.62, 0.075, bb.z + 0.2); melon.scale.set(1.3, 1, 1); g.add(melon);
+  const rind = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.016, 8, 24), felt('#2e9e4f')); rind.position.set(bb.x + 0.62, 0.075, bb.z + 0.2); rind.scale.set(1.3, 1, 1); rind.rotation.x = Math.PI / 2; g.add(rind);
+  for (let i = 0; i < 5; i++) g.add(sphere(0.008, felt('#111'), bb.x + 0.62 + (i - 2) * 0.03, 0.14, bb.z + 0.2 + (i % 2) * 0.03, 6, 4));
+  const fish = sphere(0.07, felt('#d9a24e'), bb.x + 0.65, 0.05, bb.z - 0.2); fish.scale.set(1.6, 0.7, 1); g.add(fish);
+  const fin = box(0.08, 0.06, 0.02, felt('#d9a24e'), bb.x + 0.78, 0.05, bb.z - 0.2); fin.rotation.z = 0.3; g.add(fin);
+  const sausage = cyl(0.028, 0.028, 0.14, felt('#f2a9b8'), bb.x + 0.58, 0.03, bb.z - 0.42, 10); sausage.rotation.z = Math.PI / 2; sausage.rotation.y = 0.5; g.add(sausage);
 
   // 사료 그릇 / 물그릇
   const mat = box(1.2, 0.015, 0.7, felt('#dcd3c4'), (BOWL.x + WATER.x) / 2, 0.008, BOWL.z); g.add(mat);

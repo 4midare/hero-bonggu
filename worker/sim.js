@@ -9,7 +9,8 @@ function createDog(id, x, z) {
     id, x, z, ry: 0,
     state: 'idle', t: rnd(1, 3),   // state 남은 시간
     tx: x, tz: z,                   // 이동 목표
-    follow: null,                   // 따라갈 플레이어 id (간식)
+    follow: null,                   // 따라갈 플레이어 id (간식·부르기)
+    called: false,                  // '이리 와'로 오는 중
     eatSrc: null,                   // 'bowl' | 'treat'
     hunger: 72, happy: 70,          // 0~100
   };
@@ -47,7 +48,7 @@ function pickWanderTarget(d) {
 
 function setState(d, state, t) { d.state = state; d.t = t; }
 
-function goIdle(d) { setState(d, 'idle', rnd(1.5, 4)); d.follow = null; d.eatSrc = null; }
+function goIdle(d) { setState(d, 'idle', rnd(1.5, 4)); d.follow = null; d.eatSrc = null; d.called = false; }
 
 function face(d, x, z) {
   const dx = x - d.x, dz = z - d.z;
@@ -135,9 +136,11 @@ export function tick(sim, players, dt, emit) {
         break;
       case 'approach': {
         const p = players.get(d.follow);
-        if (!p || !p.treat || dist(d.x, d.z, p.x, p.z) > RANGE.treatCall + 1) { goIdle(d); break; }
-        if (dist(d.x, d.z, p.x, p.z) < 0.95) { face(d, p.x, p.z); setState(d, 'beg', 0); break; }
-        if (stepTo(d, p.x, p.z, def.speed * 1.35, dt)) { face(d, p.x, p.z); setState(d, 'beg', 0); }
+        const called = d.called;   // '이리 와'로 오는 중이면 간식이 없어도 온다
+        if (!p || (!p.treat && !called) || dist(d.x, d.z, p.x, p.z) > RANGE.treatCall + 1) { d.called = false; goIdle(d); break; }
+        const arrive = () => { face(d, p.x, p.z); if (p.treat) setState(d, 'beg', 0); else { d.called = false; setState(d, 'sit', 8); } };
+        if (dist(d.x, d.z, p.x, p.z) < 0.95) { arrive(); break; }
+        if (stepTo(d, p.x, p.z, def.speed * 1.35, dt)) arrive();
         break;
       }
       case 'beg': {
@@ -169,6 +172,17 @@ export const actions = {
     d.happy = clamp(d.happy + 8, 0, 100);
     setState(d, 'happy', 1.8);
     emit({ t: 'ev', k: 'pet', dog: dogId, by: p.id });
+  },
+  come(sim, p, emit) {
+    let any = false;
+    for (const d of Object.values(sim.dogs)) {
+      if (['eat', 'happy'].includes(d.state)) continue;
+      if (dist(d.x, d.z, p.x, p.z) < 1.2) { face(d, p.x, p.z); setState(d, 'happy', 1.2); emit({ t: 'ev', k: 'pet', dog: d.id, by: p.id }); any = true; continue; }
+      if (d.happy < 20 && Math.random() < 0.5) { emit({ t: 'ev', k: 'ignore', dog: d.id, by: p.id }); continue; }
+      d.follow = p.id; d.called = true; setState(d, 'approach', 0); any = true;
+      emit({ t: 'ev', k: 'come', dog: d.id, by: p.id });
+    }
+    return any;
   },
   command(sim, p, type, emit) {
     if (type !== 'sit' && type !== 'down') return;
