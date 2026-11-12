@@ -138,6 +138,8 @@ document.getElementById('actions').addEventListener('click', (e) => {
   if (b.dataset.key === 'Chat') { if (net && !input.typing) { input.typing = true; ui.openChat(); } return; }
   input.press(b.dataset.key);
 });
+// 가운데 안내 문구를 누르면 그 행동을 바로 실행
+ui.promptEl.addEventListener('click', () => { const k = ui.promptEl.dataset.key; if (k) input.press(k); });
 // 모바일: 길게 눌러도 메뉴·확대가 뜨지 않게
 document.addEventListener('contextmenu', (e) => { if (isTouch) e.preventDefault(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -205,8 +207,8 @@ function handleActions() {
     else if (k === 'KeyF') { if (dist(me.x, me.z, BOWL.x, BOWL.z) > RANGE.bowl) ui.toast('사료 그릇 가까이 가세요 (창가 왼쪽)'); else net.send({ t: 'feed' }); }
   }
   // 안내 문구
-  if (near) ui.prompt(me.treat ? `<b>E</b>${DOGS[near.id].name}에게 간식 주기` : `<b>E</b>${DOGS[near.id].name} 쓰다듬기`);
-  else if (dist(me.x, me.z, BOWL.x, BOWL.z) <= RANGE.bowl) ui.prompt('<b>F</b>사료 채우기');
+  if (near) ui.prompt(me.treat ? `<b>E</b>${DOGS[near.id].name}에게 간식 주기` : `<b>E</b>${DOGS[near.id].name} 쓰다듬기`, 'KeyE');
+  else if (dist(me.x, me.z, BOWL.x, BOWL.z) <= RANGE.bowl) ui.prompt('<b>F</b>사료 채우기', 'KeyF');
   else ui.prompt('');
 }
 

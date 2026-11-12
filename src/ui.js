@@ -37,7 +37,8 @@ export function createUI() {
     online(players, meId) {
       onlineEl.innerHTML = `<b>접속 ${players.size}명</b>` + [...players.values()].map(p => `<div class="pl"><i style="background:${p.color}"></i>${esc(p.name)}${p.id === meId ? ' (나)' : ''}</div>`).join('');
     },
-    prompt(html) { if (!html) { promptEl.hidden = true; return; } promptEl.innerHTML = html; promptEl.hidden = false; },
+    prompt(html, key) { if (!html) { promptEl.hidden = true; return; } if (promptEl.dataset.html !== html) { promptEl.innerHTML = html; promptEl.dataset.html = html; } promptEl.dataset.key = key || ''; promptEl.hidden = false; },
+    promptEl,
     toast(text, ms = 1800) { toastEl.textContent = text; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, ms); },
     chat(name, text, color) { addLine(`<b style="color:${color || '#ffd9a8'}">${esc(name)}</b>${esc(text)}`); },
     sys(text) { addLine(esc(text), true); },

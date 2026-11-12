@@ -3,7 +3,7 @@
 html,body{ height:100%; overflow:hidden; background:#1b2733; color:var(--ink);
   font-family:'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
 #game{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
-button{ font:inherit; cursor:pointer; }
+button{ font:inherit; cursor:pointer; color:var(--ink); -webkit-tap-highlight-color:transparent; }
 
 /* ---- 입장 ---- */
 .overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px;
@@ -37,6 +37,8 @@ button{ font:inherit; cursor:pointer; }
 .online .pl{ display:flex; align-items:center; gap:6px; color:var(--sub); }
 .online .pl i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
 .prompt{ position:absolute; left:50%; top:58%; transform:translateX(-50%); background:rgba(31,41,51,.78); color:#fff; padding:7px 14px; border-radius:20px; font-size:13px; white-space:nowrap; }
+.prompt{ cursor:pointer; touch-action:manipulation; }
+.prompt:active{ transform:translateX(-50%) scale(.95); }
 .prompt b{ background:#fff; color:var(--ink); border-radius:6px; padding:0 6px; margin-right:6px; font-size:12px; }
 .toast{ position:absolute; left:50%; top:22%; transform:translateX(-50%); background:rgba(255,255,255,.92); color:var(--ink); padding:9px 16px; border-radius:14px; font-size:14px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.2); animation:pop .25s ease; }
 @keyframes pop{ from{ transform:translateX(-50%) scale(.8); opacity:0; } }
@@ -90,7 +92,8 @@ body.touch .stick .knob{ position:absolute; left:50%; top:50%; width:56px; heigh
 body.touch .chat{ left:10px; right:auto; bottom:calc(216px + env(safe-area-inset-bottom)); width:min(78%,300px); pointer-events:none; }
 body.touch .chat-log{ max-height:64px; } body.touch .chat-log div{ font-size:12.5px; }
 body.touch #chat-input{ position:fixed; left:10px; right:10px; top:calc(86px + env(safe-area-inset-top)); width:auto; padding:12px 14px; pointer-events:auto; box-shadow:0 8px 24px rgba(0,0,0,.3); }
-body.touch .prompt{ top:46%; font-size:14px; padding:9px 16px; } body.touch .prompt b{ display:none; }
+body.touch .prompt{ top:46%; font-size:15px; font-weight:700; padding:11px 20px; background:var(--accent); box-shadow:0 6px 18px rgba(0,0,0,.3); }
+body.touch .prompt::before{ content:'👆 '; } body.touch .prompt b{ display:none; }
 body.touch .toast{ top:calc(92px + env(safe-area-inset-top)); font-size:14px; max-width:86%; text-align:center; white-space:normal; word-break:keep-all; }
 @media (max-width:350px){ body.touch .actions{ grid-template-columns:repeat(3,56px); } body.touch .actions button{ width:56px; height:54px; } body.touch .stick{ width:110px; height:110px; } }
 @media (orientation:landscape) and (max-height:480px){ body.touch .dogs{ right:auto; width:340px; } body.touch .actions{ grid-template-columns:repeat(4,60px); } body.touch .actions button{ width:60px; height:52px; } body.touch .chat{ bottom:calc(158px + env(safe-area-inset-bottom)); } }
