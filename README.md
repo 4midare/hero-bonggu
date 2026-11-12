@@ -40,7 +40,7 @@ worker/room.js      Room DO: 접속 관리, 20Hz 시뮬, 10Hz 상태 브로드�
 worker/sim.js       강아지 상태기계(idle/wander/sleep/toBowl/eat/approach/beg/sit/down/happy)와 행동
 src/main.js         루프, 입력→행동, 보간, 카메라
 src/scene/room.js   거실(가구는 shared/world.js 의 OBSTACLES 와 위치를 맞출 것)
-src/scene/outside.js 창밖 도시·비·번개
+src/scene/outside.js 창밖 비 오는 숲(능선·나무 인스턴스·안개 띠)·비·번개
 src/scene/dogs.js   히로/봉구 절차 생성 메시(대체용)와 포즈 애니메이션
 src/scene/hero-model.js GLB 로딩, 서버 상태 → 애니메이션 클립 선택·전환
 src/scene/avatar.js 사람 아바타, 이름표, 말풍선
