@@ -2,7 +2,7 @@
 export function createInput(canvas, stickEl) {
   const keys = new Set();
   const pressed = [];           // 이번 프레임에 눌린 키 (한 번만 처리)
-  const cam = { yaw: 0, pitch: 0.38, dist: 4.6 };
+  const cam = { yaw: 0, pitch: 0.42, dist: 3.8 };
   let typing = false;
   let drag = null, dragMoved = 0;
   const clicks = [];
@@ -18,7 +18,7 @@ export function createInput(canvas, stickEl) {
 
   // 캔버스 포인터: 한 손가락 = 시점 회전/탭, 두 손가락 = 핀치 줌
   const pts = new Map(); let pinch = 0;
-  const clampDist = (d) => Math.max(1.8, Math.min(8, d));
+  const clampDist = (d) => Math.max(1.2, Math.min(8, d));
   // iOS: 브라우저가 스크롤/뒤로가기 제스처로 가져가면 pointercancel 이 나서 시점이 안 돌아간다 → 터치 기본 동작을 막는다
   for (const t of ['touchstart', 'touchmove', 'touchend']) canvas.addEventListener(t, (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
   canvas.addEventListener('pointerdown', (e) => {

@@ -4,8 +4,11 @@ import { felt, sphere, cyl, box, makeLabel } from './materials.js';
 
 const damp = (a, b, k, dt) => THREE.MathUtils.lerp(a, b, 1 - Math.exp(-k * dt));
 
+export const AVATAR_SCALE = 0.5;   // 사람이 화면을 가리지 않게 절반 크기
+const LABEL_K = 1.25 / AVATAR_SCALE; // 이름표·말풍선은 읽을 수 있는 크기로 유지
+
 export function createAvatar(color, name) {
-  const g = new THREE.Group();
+  const g = new THREE.Group(); g.scale.setScalar(AVATAR_SCALE);
   const pose = new THREE.Group(); g.add(pose);         // 앉을 때 전체를 내리는 그룹
   const body = felt(color), skin = felt('#f6d9c3'), hair = felt('#3b2f2f'), pants = felt('#4b5563');
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.5, 6, 14), body);
@@ -34,7 +37,7 @@ export function createAvatar(color, name) {
   for (const [x, y] of [[-0.08, 0.025], [-0.08, -0.025], [0.08, 0.025], [0.08, -0.025]]) treat.add(sphere(0.03, bone, x, y, 0, 8, 6));
   arms[1].add(treat);
 
-  const label = makeLabel(name); label.position.y = 1.95; g.add(label);
+  const label = makeLabel(name); label.scale.multiplyScalar(LABEL_K); label.position.y = 2.05; g.add(label);
   let bubble = null, bubbleT = 0;
 
   const st = { t: Math.random() * 5 };
@@ -56,15 +59,15 @@ export function createAvatar(color, name) {
     }
     const poseY = anim === 'floor' ? -0.5 : anim === 'sit' ? -0.17 : 0;
     pose.position.y += (poseY - pose.position.y) * kd;
-    label.position.y = 1.95 + pose.position.y;
+    label.position.y = 2.05 + pose.position.y;
     torso.position.y = 0.95 + (moving ? Math.abs(Math.sin(st.t * k)) * 0.03 : Math.sin(st.t * 2) * 0.006);
     treat.visible = !!treatOn;
-    if (bubble) { bubble.position.y = 2.3 + pose.position.y; bubbleT -= dt; if (bubbleT <= 0) { g.remove(bubble); bubble.material.map.dispose(); bubble.material.dispose(); bubble = null; } }
+    if (bubble) { bubble.position.y = 2.6 + pose.position.y; bubbleT -= dt; if (bubbleT <= 0) { g.remove(bubble); bubble.material.map.dispose(); bubble.material.dispose(); bubble = null; } }
   }
   function say(text) {
     if (bubble) { g.remove(bubble); bubble.material.map.dispose(); bubble.material.dispose(); }
     bubble = makeLabel(text, { bg: 'rgba(255,255,255,.94)', fg: '#1f2933', size: 26 });
-    bubble.position.y = 2.3; g.add(bubble); bubbleT = 5;
+    bubble.scale.multiplyScalar(LABEL_K); bubble.position.y = 2.6; g.add(bubble); bubbleT = 5;
   }
   return { mesh: g, update, say };
 }

@@ -3,7 +3,8 @@ import { ROOM, SPAWN, BOWL, DOGS, RANGE, PLAYER_RADIUS, isFree, pathFree, dist }
 import { buildRoom } from './scene/room.js';
 import { buildOutside } from './scene/outside.js';
 import { createDog } from './scene/dogs.js';
-import { createAvatar } from './scene/avatar.js';
+import { createAvatar, AVATAR_SCALE } from './scene/avatar.js';
+const SOFA_LIFT = 0.58 - 0.45 * AVATAR_SCALE;   // 작아진 아바타의 엉덩이를 소파 좌석 높이에 맞춘다
 import { createEffects } from './scene/effects.js';
 import { createInput } from './input.js';
 import { createUI } from './ui.js';
@@ -27,7 +28,7 @@ const fx = createEffects(scene);
 const isTouch = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 if (isTouch) document.body.classList.add('touch');
 const input = createInput(canvas);
-if (isTouch) { input.cam.dist = 5.6; input.cam.pitch = 0.42; }
+if (isTouch) { input.cam.dist = 4.6; input.cam.pitch = 0.5; }
 const ui = createUI();
 
 const dogs = {};
@@ -287,7 +288,7 @@ function movePlayer(dt) {
   }
   me.anim = me.sit === 'sofa' ? 'sit' : me.sit === 'floor' ? 'floor' : moving ? (run || me.auto?.run ? 'run' : 'walk') : 'idle';
   if (!me.auto || me.auto.then === 'sofa') marker.visible = false; else marker.scale.setScalar(1 + 0.15 * Math.sin(performance.now() / 120));
-  me.avatar.mesh.position.set(me.x, 0, me.z);
+  me.avatar.mesh.position.set(me.x, me.sit === 'sofa' ? SOFA_LIFT : 0, me.z);
   me.avatar.mesh.rotation.y = THREE.MathUtils.lerp(me.avatar.mesh.rotation.y, me.ry + Math.round((me.avatar.mesh.rotation.y - me.ry) / (Math.PI * 2)) * Math.PI * 2, 1 - Math.exp(-14 * dt));
   me.avatar.update(dt, me.anim, me.treat);
 
@@ -305,6 +306,7 @@ function updateOthers(dt) {
   for (const o of others.values()) {
     const m = o.avatar.mesh;
     m.position.x += (o.tx - m.position.x) * k; m.position.z += (o.tz - m.position.z) * k;
+    m.position.y += ((o.anim === 'sit' ? SOFA_LIFT : 0) - m.position.y) * k;
     let d = o.try - m.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); m.rotation.y += d * k;
     o.avatar.update(dt, o.anim, o.treat);
   }
@@ -325,7 +327,7 @@ function updateDogs(dt) {
 // ---------- 카메라 ----------
 function updateCamera(dt) {
   const { yaw, pitch, dist: cd } = input.cam;
-  const tx = me.x, ty = me.sit === 'floor' ? 0.8 : me.sit === 'sofa' ? 1.15 : 1.35, tz = me.z;
+  const tx = me.x, ty = me.sit === 'floor' ? 0.45 : me.sit === 'sofa' ? 0.85 : 0.75, tz = me.z;
   let cx = tx + Math.sin(yaw) * Math.cos(pitch) * cd, cy = ty + Math.sin(pitch) * cd, cz = tz + Math.cos(yaw) * Math.cos(pitch) * cd;
   // 벽 밖으로 못 나가게
   cx = Math.max(ROOM.minX + 0.25, Math.min(ROOM.maxX - 0.25, cx));
