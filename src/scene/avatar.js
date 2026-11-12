@@ -41,6 +41,7 @@ export function createAvatar(color, name) {
   let bubble = null, bubbleT = 0;
 
   const st = { t: Math.random() * 5 };
+  let flickT = 0, hitT = 0;
   function update(dt, anim, treatOn) {
     st.t += dt;
     const sitting = anim === 'sit' || anim === 'floor';
@@ -62,6 +63,10 @@ export function createAvatar(color, name) {
     label.position.y = 2.05 + pose.position.y;
     torso.position.y = 0.95 + (moving ? Math.abs(Math.sin(st.t * k)) * 0.03 : Math.sin(st.t * 2) * 0.006);
     treat.visible = !!treatOn;
+    // 딱밤: 때리는 쪽은 팔을 휘두르고, 맞는 쪽은 뒤로 휘청
+    if (flickT > 0) { flickT -= dt; const q = 1 - Math.max(0, flickT) / 0.35; arms[1].rotation.x = -1.2 - Math.sin(q * Math.PI) * 1.1; }
+    if (hitT > 0) { hitT -= dt; const q = Math.max(0, hitT) / 0.7; pose.rotation.x = -Math.sin((1 - q) * Math.PI * 3) * 0.3 * q; head.position.z = -0.06 * q; }
+    else { pose.rotation.x = 0; head.position.z = 0; }
     if (bubble) { bubble.position.y = 2.6 + pose.position.y; bubbleT -= dt; if (bubbleT <= 0) { g.remove(bubble); bubble.material.map.dispose(); bubble.material.dispose(); bubble = null; } }
   }
   function say(text) {
@@ -69,5 +74,5 @@ export function createAvatar(color, name) {
     bubble = makeLabel(text, { bg: 'rgba(255,255,255,.94)', fg: '#1f2933', size: 26 });
     bubble.scale.multiplyScalar(LABEL_K); bubble.position.y = 2.6; g.add(bubble); bubbleT = 5;
   }
-  return { mesh: g, update, say };
+  return { mesh: g, update, say, flick() { flickT = 0.35; }, hit() { hitT = 0.7; } };
 }

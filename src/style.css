@@ -52,7 +52,12 @@ button{ font:inherit; cursor:pointer; color:var(--ink); -webkit-tap-highlight-co
 .chat-log div.sys{ background:rgba(255,255,255,.72); color:var(--sub); }
 .chat-log div b{ margin-right:5px; }
 @keyframes fadein{ from{ opacity:0; transform:translateY(4px);} }
-#chat-input{ font:inherit; font-size:13px; padding:8px 12px; border:0; border-radius:12px; outline:none; background:rgba(255,255,255,.92); }
+.chat.open .chat-log{ max-height:40vh; overflow-y:auto; justify-content:flex-start; pointer-events:auto; }
+.chat-bar{ display:flex; gap:6px; }
+.chat-bar[hidden]{ display:none; }
+#chat-input{ flex:1; min-width:0; font:inherit; font-size:13px; padding:8px 12px; border:0; border-radius:12px; outline:none; background:rgba(255,255,255,.95); }
+.chat-bar button{ border:0; border-radius:12px; padding:0 12px; font-size:13px; font-weight:700; background:rgba(255,255,255,.95); }
+.chat-bar .send{ background:var(--accent); color:#fff; }
 .conn{ position:absolute; left:50%; top:14px; transform:translateX(-50%); background:#d9480f; color:#fff; padding:6px 14px; border-radius:20px; font-size:12.5px; }
 
 .actions button i{ font-style:normal; margin-right:4px; }
@@ -97,7 +102,11 @@ body.touch .actions button:active{ transform:scale(.93); background:#fff; }
 body.touch .actions button.on{ background:var(--accent); color:#fff; }
 body.touch .chat{ left:10px; right:auto; bottom:calc(176px + env(safe-area-inset-bottom)); width:min(78%,300px); pointer-events:none; }
 body.touch .chat-log{ max-height:64px; } body.touch .chat-log div{ font-size:12.5px; }
-body.touch #chat-input{ position:fixed; left:10px; right:10px; top:calc(86px + env(safe-area-inset-top)); width:auto; padding:12px 14px; pointer-events:auto; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+body.touch .chat-bar{ position:fixed; left:10px; right:10px; top:calc(102px + env(safe-area-inset-top)); pointer-events:auto; filter:drop-shadow(0 8px 16px rgba(0,0,0,.3)); }
+body.touch #chat-input{ padding:12px 14px; }
+body.touch .chat-bar button{ padding:0 14px; font-size:15px; }
+body.touch .chat.open{ bottom:auto; top:calc(158px + env(safe-area-inset-top)); width:calc(100% - 20px); }
+body.touch .chat.open .chat-log{ max-height:30vh; }
 body.touch .prompt{ top:auto; bottom:calc(132px + env(safe-area-inset-bottom)); font-size:13px; font-weight:700; padding:8px 16px; background:var(--accent); box-shadow:0 4px 12px rgba(0,0,0,.3); }
 body.touch .prompt::before{ content:'👆 '; } body.touch .prompt b{ display:none; }
 body.touch .toast{ top:calc(92px + env(safe-area-inset-top)); font-size:14px; max-width:86%; text-align:center; white-space:normal; word-break:keep-all; }

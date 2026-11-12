@@ -48,6 +48,7 @@ function addOther(p) {
   const avatar = createAvatar(p.color, p.name);
   avatar.mesh.position.set(SPAWN.x, 0, SPAWN.z);
   scene.add(avatar.mesh);
+  avatar.mesh.traverse(o => { o.userData.playerId = p.id; });
   others.set(p.id, { ...p, avatar, tx: SPAWN.x, tz: SPAWN.z, try: 0, anim: 'idle', treat: false });
 }
 function removeOther(id) { const o = others.get(id); if (!o) return; scene.remove(o.avatar.mesh); others.delete(id); }
@@ -119,6 +120,16 @@ function onEvent(ev) {
     case 'obey': fx.spawn(dogPos(ev.dog), '✨', 2); if (ev.by === me.id) ui.toast(`${dn}: ${ev.cmd === 'sit' ? '앉아' : '엎드려'} 성공!`); break;
     case 'ignore': fx.spawn(dogPos(ev.dog), '❓', 1); if (ev.by === me.id) ui.toast(`${dn}가 못 들은 척해요… (기분이 안 좋아요)`); break;
     case 'feed': fx.spawn({ x: BOWL.x, y: 0.4, z: BOWL.z }, '🥣', 1); ui.sys(`${who} 사료를 채웠어요`); break;
+    case 'flick': {
+      const a = ev.by === me.id ? me : others.get(ev.by), b = ev.to === me.id ? me : others.get(ev.to);
+      if (!a || !b) break;
+      a.avatar.flick(); b.avatar.hit(); b.avatar.say('아야!');
+      const bp = b.avatar.mesh.position; fx.spawn({ x: bp.x, y: bp.y + 0.75, z: bp.z }, '💥', 1); fx.spawn({ x: bp.x, y: bp.y + 0.8, z: bp.z }, '⭐', 2);
+      if (ev.to === me.id) ui.toast(`${a.name} 님이 딱밤을 때렸어요 💥`);
+      else if (ev.by === me.id) ui.toast(`${b.name} 님에게 딱밤! 💥`);
+      ui.sys(`${a.name} 님이 ${b.name} 님에게 딱밤 💥`);
+      break;
+    }
     case 'come': fx.spawn(dogPos(ev.dog), '❗', 1); if (ev.by === me.id) ui.toast(`${dn}가 달려와요!`); break;
   }
 }
@@ -147,12 +158,15 @@ document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // 채팅: Enter 는 키다운 즉시 입력창을 연다 (프레임 대기 없이)
 window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && net && !input.typing) { e.preventDefault(); input.typing = true; ui.openChat(); } });
-ui.input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { const t = ui.input.value.trim(); if (t) net?.send({ t: 'chat', text: t }); ui.closeChat(); input.typing = false; e.preventDefault(); }
-  else if (e.key === 'Escape') { ui.closeChat(); input.typing = false; }
-  e.stopPropagation();
+const closeChat = () => { ui.closeChat(); input.typing = false; };
+ui.bar.addEventListener('submit', (e) => {   // 전송 버튼·Enter·모바일 키보드의 '전송' 모두 여기로 온다. 보낸 뒤에도 창은 열어 둔다
+  e.preventDefault();
+  const t = ui.input.value.trim(); if (t) net?.send({ t: 'chat', text: t });
+  ui.input.value = ''; ui.input.focus();
 });
-ui.input.addEventListener('blur', () => { ui.closeChat(); input.typing = false; });
+ui.input.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeChat(); e.stopPropagation(); });
+document.getElementById('chat-close').addEventListener('click', closeChat);
+canvas.addEventListener('pointerdown', () => { if (input.typing && !ui.input.value.trim()) closeChat(); });
 
 // ---------- 앉기 ----------
 const SOFA = { xMin: 1.45, xMax: 3.55, seatZ: 3.5, frontZ: 2.6 };
@@ -197,6 +211,21 @@ function floorPoint(ray) {
   const t = -o.y / d.y; return { x: o.x + d.x * t, z: o.z + d.z * t };
 }
 
+// ---------- 딱밤 ----------
+const FLICK_RANGE = 1.3;
+function nearestPlayer() {
+  let best = null, bd = FLICK_RANGE;
+  for (const o of others.values()) { const d = dist(me.x, me.z, o.avatar.mesh.position.x, o.avatar.mesh.position.z); if (d < bd) { bd = d; best = o; } }
+  return best;
+}
+function flick(id) {
+  const o = others.get(id); if (!o) return;
+  const op = o.avatar.mesh.position;
+  if (dist(me.x, me.z, op.x, op.z) <= FLICK_RANGE) { me.ry = Math.atan2(op.x - me.x, op.z - me.z); net?.send({ t: 'flick', to: id }); return; }
+  const dx = me.x - op.x, dz = me.z - op.z, l = Math.hypot(dx, dz) || 1;
+  walkTo(op.x + (dx / l) * 0.7, op.z + (dz / l) * 0.7, { flick: id });
+}
+
 function standUp() {
   if (me.sit === 'sofa') { me.z = SOFA.frontZ; }
   me.sit = null; me.auto = null;
@@ -217,13 +246,15 @@ function handleActions() {
   if (clicks.length) {
     const ray = new THREE.Raycaster(); const c = clicks[0];
     ray.setFromCamera(new THREE.Vector2((c.x / innerWidth) * 2 - 1, -(c.y / innerHeight) * 2 + 1), camera);
-    const hit = ray.intersectObjects(scene.children, true).find(h => h.object.userData.dogId || h.object.userData.sofa || h.object.parent?.userData?.dogId || h.object.parent?.parent?.userData?.dogId);
+    const hit = ray.intersectObjects(scene.children, true).find(h => dogOf(h.object) || h.object.userData.sofa || h.object.userData.playerId);
     const dogHit = hit && dogOf(hit.object);
+    const playerHit = !dogHit && hit?.object.userData.playerId;
     if (dogHit && near && dogHit === near.id) keys.push('KeyE');
     else if (dogHit) {   // 멀리 있는 강아지를 누르면 다가가서 쓰다듬는다
       const dp = dogs[dogHit].mesh.position, dx = me.x - dp.x, dz = me.z - dp.z, l = Math.hypot(dx, dz) || 1;
       walkTo(dp.x + (dx / l) * 0.9, dp.z + (dz / l) * 0.9, { pet: dogHit });
     }
+    else if (playerHit) flick(playerHit);
     else if (hit?.object.userData.sofa) goSitOnSofa(hit.point.x);
     else { const fp = floorPoint(ray); if (fp) walkTo(fp.x, fp.z); }
   }
@@ -235,11 +266,13 @@ function handleActions() {
     else if (k === 'Digit2') net.send({ t: 'cmd', type: 'sit' });
     else if (k === 'Digit3') net.send({ t: 'cmd', type: 'down' });
     else if (k === 'Digit4') { net.send({ t: 'come' }); me.avatar.say('히로! 봉구! 이리 와~'); }
+    else if (k === 'KeyG') { const o = nearestPlayer(); if (o) flick(o.id); else ui.toast('가까이 있는 사람이 없어요'); }
     else if (k === 'KeyC') { if (me.sit) standUp(); else { me.auto = null; me.sit = 'floor'; ui.toast('바닥에 앉았어요. 다른 곳을 누르면 일어나요'); } }
     else if (k === 'KeyF') { if (dist(me.x, me.z, BOWL.x, BOWL.z) > RANGE.bowl) ui.toast('사료 그릇 가까이 가세요 (창가 왼쪽)'); else net.send({ t: 'feed' }); }
   }
   // 안내 문구
   if (near) ui.prompt(me.treat ? `<b>E</b>${DOGS[near.id].name}에게 간식 주기` : `<b>E</b>${DOGS[near.id].name} 쓰다듬기`, 'KeyE');
+  else if (nearestPlayer()) ui.prompt(`<b>G</b>${ui.esc(nearestPlayer().name)} 딱밤 때리기`, 'KeyG');
   else if (dist(me.x, me.z, BOWL.x, BOWL.z) <= RANGE.bowl) ui.prompt('<b>F</b>사료 채우기', 'KeyF');
   else ui.prompt('');
 }
@@ -261,6 +294,7 @@ function movePlayer(dt) {
       if (me.auto.wps.length === 0) {
         const then = me.auto.then;
         if (then === 'sofa') { me.x = wp.x; me.z = SOFA.seatZ; me.ry = Math.PI; me.sit = 'sofa'; ui.toast('소파에 앉았어요 🛋️ 다른 곳을 누르면 일어나요'); }
+        else if (then?.flick) { const o = others.get(then.flick); if (o && dist(me.x, me.z, o.avatar.mesh.position.x, o.avatar.mesh.position.z) <= FLICK_RANGE + 0.3) { me.ry = Math.atan2(o.avatar.mesh.position.x - me.x, o.avatar.mesh.position.z - me.z); net?.send({ t: 'flick', to: then.flick }); } }
         else if (then?.pet) { const dp = dogs[then.pet].mesh.position; me.ry = Math.atan2(dp.x - me.x, dp.z - me.z); if (dist(me.x, me.z, dp.x, dp.z) <= RANGE.pet) net?.send(me.treat ? { t: 'give', dog: then.pet } : { t: 'pet', dog: then.pet }); }
         me.auto = null;
       }

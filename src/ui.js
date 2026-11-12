@@ -6,7 +6,7 @@ const STATE_KO = { idle: '멍하니', wander: '산책 중', sleep: '쿨쿨', eat
 export function createUI() {
   const $ = (id) => document.getElementById(id);
   const dogsEl = $('dogs'), onlineEl = $('online'), promptEl = $('prompt'), toastEl = $('toast');
-  const log = $('chat-log'), input = $('chat-input'), conn = $('conn');
+  const log = $('chat-log'), input = $('chat-input'), conn = $('conn'), bar = $('chat-bar'), chatEl = $('chat');
   let toastT = null;
 
   const dogCards = {};
@@ -22,7 +22,8 @@ export function createUI() {
 
   function addLine(html, sys) {
     const d = document.createElement('div'); if (sys) d.className = 'sys'; d.innerHTML = html; log.appendChild(d);
-    while (log.children.length > 8) log.removeChild(log.firstChild);
+    while (log.children.length > 40) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -44,8 +45,9 @@ export function createUI() {
     sys(text) { addLine(esc(text), true); },
     conn(ok) { conn.hidden = ok; },
     treatButton(on) { document.querySelector('[data-key="Digit1"]').classList.toggle('on', on); },
-    openChat() { input.hidden = false; input.focus(); },
-    closeChat() { input.value = ''; input.hidden = true; input.blur(); },
+    openChat() { bar.hidden = false; chatEl.classList.add('open'); input.focus(); log.scrollTop = log.scrollHeight; },
+    closeChat() { input.value = ''; bar.hidden = true; chatEl.classList.remove('open'); input.blur(); },
+    bar,
     input, esc,
   };
 }

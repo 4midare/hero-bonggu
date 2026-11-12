@@ -78,6 +78,14 @@ export class Room {
       case 'come': actions.come(this.sim, p, emit); break;
       case 'give': actions.give(this.sim, p, String(m.dog), emit); break;
       case 'feed': actions.feed(this.sim, p, emit); break;
+      case 'flick': {   // 딱밤: 가까이 있는 다른 사람에게만, 1.2초에 한 번
+        const q = this.players.get(String(m.to)), now = Date.now();
+        if (!q || q.id === p.id || now - (p.lastFlick || 0) < 1200) break;
+        if (Math.hypot(q.x - p.x, q.z - p.z) > 2) break;
+        p.lastFlick = now;
+        this.broadcast({ t: 'ev', k: 'flick', by: p.id, to: q.id });
+        break;
+      }
       case 'chat': {
         const text = clean(m.text, 120);
         if (text) this.broadcast({ t: 'c', id: p.id, name: p.name, text });
