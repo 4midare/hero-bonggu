@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>히로 · 움직임 미리보기</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🐶</text></svg>">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eee7dc;color:#343026;font:15px system-ui,sans-serif}canvas{display:block;position:fixed;inset:0;width:100%;height:100%;touch-action:none}header{position:absolute;left:28px;top:22px;pointer-events:none}h1{font-size:23px;margin:0 0 8px}p{margin:4px 0;color:#736957}footer{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:min(92%,700px);padding:16px;background:#fffaf0ed;border-radius:20px;box-shadow:0 6px 32px #49382018}nav{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}button{font:inherit;border:1px solid #d8cdb9;border-radius:12px;background:white;color:#4c4334;padding:10px 14px;cursor:pointer}button[aria-pressed=true]{background:#5b674e;color:white;border-color:#5b674e}button:disabled{opacity:.5;cursor:wait}#status{font-size:13px;text-align:center;margin:10px 0 0}#pause{position:fixed;right:24px;top:24px}a{color:#58674b}footer p{font-size:12px;text-align:center;margin-top:8px}
+</style>
+<canvas id="preview"></canvas>
+<header style="pointer-events:auto"><h1>히로 · 움직임 미리보기</h1><p>드래그해서 회전 · 휠 또는 두 손가락으로 확대</p><p><a href="?dog=hero">히로 보기</a> · <a href="?dog=bonggu">봉구 보기</a></p></header>
+<button id="pause" disabled>일시정지</button>
+<footer><nav id="motions" aria-label="동작 선택"></nav><p id="status" role="status">히로를 불러오는 중…</p><p>게임용 시제품 · <a href="/models/hero_game.glb" download>GLB 다운로드</a></p></footer>
+<script type="module" src="/src/hero-preview.js"></script>
+</html>

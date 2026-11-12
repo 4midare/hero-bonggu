@@ -2,6 +2,7 @@
 // 사진(양모펠트 인형)의 특징을 옮긴다: 큰 반짝이는 눈, 웃는 입, 풍성한 털, 펠트 질감.
 import * as THREE from 'three';
 import { felt, sphere, cyl, canvasTexture } from './materials.js';
+import { upgradeDog } from './hero-model.js';
 
 const lerp = THREE.MathUtils.lerp;
 const damp = (a, b, k, dt) => lerp(a, b, 1 - Math.exp(-k * dt));
@@ -189,5 +190,6 @@ export function createDog(id) {
     d.tail.rotation.z = Math.sin(t * wag) * (wag > 10 ? 0.6 : 0.3);
     d.ears.forEach((e, i) => { e.rotation.y = Math.sin(t * 2 + i) * (0.08 + earTw) * (state === 'sleep' ? 0.3 : 1); });
   }
-  return { id, mesh: d.g, head: d.head, update };
+  const dog = { id, mesh: d.g, head: d.head, update };
+  return upgradeDog(dog);
 }

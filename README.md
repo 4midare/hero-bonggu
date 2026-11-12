@@ -2,7 +2,8 @@
 
 https://hero-bonggu.neungae.com — 비 오는 날 고층 아파트에서 치와와 **히로**와 닥스훈트 **봉구**를 함께 돌보는 작은 멀티플레이 집.
 
-- 클라이언트: Vite + Three.js (절차 생성 메시, 외부 에셋 없음)
+- 클라이언트: Vite + Three.js. 강아지는 `public/models/*_game.glb`(뼈대 19개, 동작 9개: Idle/Walk/Run/Sit/Down/Sleep/Eat/Beg/Happy)를 불러오고, 로딩 중이거나 실패하면 코드로 만든 강아지가 대신 나온다.
+- 모델 미리보기: `/hero-preview?dog=hero`, `/hero-preview?dog=bonggu`. 모델 검사: `node tests/hero.test.mjs hero` / `bonggu`.
 - 서버: Cloudflare Worker + Durable Object(`Room`) 하나가 집 하나. 강아지 AI는 서버에서 돌아가고 모든 접속자가 같은 히로·봉구를 본다.
 - 배포: `main` 푸시 → Workers Builds. 빌드 `npm run build`, 배포 `npx wrangler deploy`.
 
@@ -37,6 +38,7 @@ worker/sim.js       강아지 상태기계(idle/wander/sleep/toBowl/eat/approach
 src/main.js         루프, 입력→행동, 보간, 카메라
 src/scene/room.js   거실(가구는 shared/world.js 의 OBSTACLES 와 위치를 맞출 것)
 src/scene/outside.js 창밖 도시·비·번개
-src/scene/dogs.js   히로/봉구 메시와 포즈 애니메이션
+src/scene/dogs.js   히로/봉구 절차 생성 메시(대체용)와 포즈 애니메이션
+src/scene/hero-model.js GLB 로딩, 서버 상태 → 애니메이션 클립 선택·전환
 src/scene/avatar.js 사람 아바타, 이름표, 말풍선
 ```
