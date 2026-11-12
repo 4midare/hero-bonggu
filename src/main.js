@@ -24,7 +24,10 @@ scene.add(new THREE.HemisphereLight('#fff2e0', '#6b5a4a', 0.55));
 const room = buildRoom(scene);
 const outside = buildOutside(scene);
 const fx = createEffects(scene);
-const input = createInput(canvas);
+const isTouch = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
+if (isTouch) document.body.classList.add('touch');
+const input = createInput(canvas, document.getElementById('stick'));
+if (isTouch) { input.cam.dist = 5.6; input.cam.pitch = 0.42; }
 const ui = createUI();
 
 const dogs = {};
@@ -130,7 +133,14 @@ joinForm.addEventListener('submit', (e) => {
 });
 
 // 화면 버튼 → 키 입력으로
-document.getElementById('actions').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) input.press(b.dataset.key); });
+document.getElementById('actions').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.key === 'Chat') { if (net && !input.typing) { input.typing = true; ui.openChat(); } return; }
+  input.press(b.dataset.key);
+});
+// 모바일: 길게 눌러도 메뉴·확대가 뜨지 않게
+document.addEventListener('contextmenu', (e) => { if (isTouch) e.preventDefault(); });
+document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // 채팅: Enter 는 키다운 즉시 입력창을 연다 (프레임 대기 없이)
 window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && net && !input.typing) { e.preventDefault(); input.typing = true; ui.openChat(); } });
@@ -291,7 +301,7 @@ function updateCamera(dt) {
 }
 
 // ---------- 루프 ----------
-function resize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); }
+function resize() { camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth < innerHeight ? 72 : 60; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); }
 addEventListener('resize', resize); resize();
 
 const clock = new THREE.Clock();

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>히로와 봉구의 집</title>
 <meta name="description" content="비 오는 날, 고층 아파트에 사는 치와와 히로와 닥스훈트 봉구를 함께 돌보는 작은 멀티플레이 집.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🐶</text></svg>">
@@ -21,6 +21,7 @@
       <input id="join-name" maxlength="12" placeholder="이름 (최대 12자)" autocomplete="off" required>
       <button type="submit">들어가기</button>
     </form>
+    <div class="join-help-touch">왼쪽 아래 <b>조이스틱</b>으로 이동 · 화면을 <b>드래그</b>해 둘러보기 · 두 손가락으로 확대<br>오른쪽 아래 <b>버튼</b>으로 돌보기 · <b>소파를 누르면</b> 앉아요</div>
     <div class="join-help">
       <span><b>WASD / 방향키</b> 이동</span><span><b>Shift</b> 달리기</span><span><b>마우스 드래그</b> 시점</span>
       <span><b>E</b> 쓰다듬기·간식 주기</span><span><b>1</b> 간식 들기</span><span><b>2</b> 앉아</span><span><b>3</b> 엎드려</span><span><b>4</b> 이리 와</span><span><b>F</b> 사료 주기</span><span><b>C</b> 바닥에 앉기</span><span><b>소파 클릭</b> 소파에 앉기</span><span><b>Enter</b> 채팅</span>
@@ -35,17 +36,19 @@
   <div id="prompt" class="prompt" hidden></div>
   <div id="toast" class="toast" hidden></div>
   <div id="actions" class="actions">
-    <button data-key="KeyE" title="E">🖐️ 쓰다듬기</button>
-    <button data-key="Digit1" title="1">🦴 간식</button>
-    <button data-key="Digit2" title="2">앉아</button>
-    <button data-key="Digit3" title="3">엎드려</button>
-    <button data-key="Digit4" title="4">📣 이리 와</button>
-    <button data-key="KeyF" title="F">🥣 사료</button>
-    <button data-key="KeyC" title="C">🧘 앉기</button>
+    <button data-key="KeyE" title="E"><i>🖐️</i><span>쓰다듬기</span></button>
+    <button data-key="Digit1" title="1"><i>🦴</i><span>간식</span></button>
+    <button data-key="Digit4" title="4"><i>📣</i><span>이리 와</span></button>
+    <button data-key="Digit2" title="2"><i>🐕</i><span>앉아</span></button>
+    <button data-key="Digit3" title="3"><i>💤</i><span>엎드려</span></button>
+    <button data-key="KeyF" title="F"><i>🥣</i><span>사료</span></button>
+    <button data-key="KeyC" title="C"><i>🧘</i><span>앉기</span></button>
+    <button data-key="Chat" title="Enter" class="touch-only"><i>💬</i><span>채팅</span></button>
   </div>
+  <div id="stick" class="stick" aria-label="이동 조이스틱"><div class="knob"></div></div>
   <div id="chat" class="chat">
     <div id="chat-log" class="chat-log"></div>
-    <input id="chat-input" maxlength="120" placeholder="Enter 로 채팅" autocomplete="off" hidden>
+    <input id="chat-input" maxlength="120" placeholder="메시지 입력 후 Enter" autocomplete="off" enterkeyhint="send" hidden>
   </div>
   <div id="conn" class="conn" hidden>연결이 끊겼어요. 다시 연결 중…</div>
 </div>
