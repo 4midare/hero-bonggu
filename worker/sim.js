@@ -87,8 +87,10 @@ export function tick(sim, players, dt, emit) {
   for (const d of Object.values(sim.dogs)) {
     const def = DOGS[d.id];
     const sleeping = d.state === 'sleep';
-    d.hunger = clamp(d.hunger - dt / (sleeping ? 14 : 7), 0, 100);
-    d.happy = clamp(d.happy - dt / (sleeping ? 24 : 12), 0, 100);
+    // 배부름: 깨어 있으면 1분에 1, 자는 동안은 2분에 1 (가득 찬 뒤 약 1시간 반~3시간)
+    d.hunger = clamp(d.hunger - dt / (sleeping ? 120 : 60), 0, 100);
+    // 기분: 40초에 1, 자는 동안은 80초에 1
+    d.happy = clamp(d.happy - dt / (sleeping ? 80 : 40), 0, 100);
 
     // 간식 든 사람이 가까이 있으면 달려간다 (먹는 중/명령 수행 중/쓰다듬 중 제외)
     if (!['eat', 'sit', 'down', 'happy', 'approach', 'beg'].includes(d.state)) {
