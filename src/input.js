@@ -19,7 +19,10 @@ export function createInput(canvas, stickEl) {
   // 캔버스 포인터: 한 손가락 = 시점 회전/탭, 두 손가락 = 핀치 줌
   const pts = new Map(); let pinch = 0;
   const clampDist = (d) => Math.max(1.8, Math.min(8, d));
+  // iOS: 브라우저가 스크롤/뒤로가기 제스처로 가져가면 pointercancel 이 나서 시점이 안 돌아간다 → 터치 기본 동작을 막는다
+  for (const t of ['touchstart', 'touchmove', 'touchend']) canvas.addEventListener(t, (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
   canvas.addEventListener('pointerdown', (e) => {
+    if (e.isPrimary) { pts.clear(); pinch = 0; }   // 이전 터치가 정리되지 않고 남아 있으면 핀치로 오인한다
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { canvas.setPointerCapture(e.pointerId); } catch {}
     if (pts.size === 1) { drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; dragMoved = 0; }
@@ -47,6 +50,7 @@ export function createInput(canvas, stickEl) {
   };
   canvas.addEventListener('pointerup', (e) => endPtr(e, false));
   canvas.addEventListener('pointercancel', (e) => endPtr(e, true));
+  window.addEventListener('blur', () => { pts.clear(); drag = null; pinch = 0; });
 
   // 터치 조이스틱
   const stick = { x: 0, y: 0, id: null };

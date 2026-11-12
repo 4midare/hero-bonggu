@@ -26,7 +26,7 @@ const outside = buildOutside(scene);
 const fx = createEffects(scene);
 const isTouch = matchMedia('(pointer: coarse)').matches || new URLSearchParams(location.search).has('touch');
 if (isTouch) document.body.classList.add('touch');
-const input = createInput(canvas, document.getElementById('stick'));
+const input = createInput(canvas);
 if (isTouch) { input.cam.dist = 5.6; input.cam.pitch = 0.42; }
 const ui = createUI();
 
@@ -169,6 +169,33 @@ function goSitOnSofa(x) {
   me.auto = { wps: route, then: 'sofa', stuck: 0 };
   ui.toast('소파로 가는 중…');
 }
+// ---------- 눌러서 이동 ----------
+const marker = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.24, 32), new THREE.MeshBasicMaterial({ color: '#ff8c42', transparent: true, opacity: 0.85, depthWrite: false }));
+marker.rotation.x = -Math.PI / 2; marker.position.y = 0.02; marker.visible = false; scene.add(marker);
+function routeTo(tx, tz) {
+  const R = PLAYER_RADIUS;
+  if (pathFree(me.x, me.z, tx, tz, R)) return [{ x: tx, z: tz }];
+  const a = { x: me.x, z: tz }, b = { x: tx, z: me.z };
+  for (const w of [a, b]) if (pathFree(me.x, me.z, w.x, w.z, R) && pathFree(w.x, w.z, tx, tz, R)) return [w, { x: tx, z: tz }];
+  return [{ x: tx, z: tz }];   // 길을 못 찾으면 그쪽으로 갈 수 있는 데까지 간다
+}
+function walkTo(x, z, then) {
+  const R = PLAYER_RADIUS + 0.02;
+  let tx = Math.max(ROOM.minX + R, Math.min(ROOM.maxX - R, x)), tz = Math.max(ROOM.minZ + R, Math.min(ROOM.maxZ - R, z));
+  // 가구 위를 눌렀으면 내 쪽으로 조금씩 당겨 빈 자리를 찾는다
+  for (let i = 0; i < 40 && !isFree(tx, tz, PLAYER_RADIUS); i++) { const dx = me.x - tx, dz = me.z - tz, l = Math.hypot(dx, dz) || 1; tx += (dx / l) * 0.1; tz += (dz / l) * 0.1; }
+  if (!isFree(tx, tz, PLAYER_RADIUS)) return;
+  if (me.sit) standUp();
+  const far = Math.hypot(tx - me.x, tz - me.z) > 4.5;
+  me.auto = { wps: routeTo(tx, tz), then: then || null, stuck: 0, run: far };
+  marker.position.set(tx, 0.02, tz); marker.visible = true; marker.scale.setScalar(1.6);
+}
+function floorPoint(ray) {
+  const o = ray.ray.origin, d = ray.ray.direction;
+  if (d.y > -0.02) return null;
+  const t = -o.y / d.y; return { x: o.x + d.x * t, z: o.z + d.z * t };
+}
+
 function standUp() {
   if (me.sit === 'sofa') { me.z = SOFA.frontZ; }
   me.sit = null; me.auto = null;
@@ -192,8 +219,12 @@ function handleActions() {
     const hit = ray.intersectObjects(scene.children, true).find(h => h.object.userData.dogId || h.object.userData.sofa || h.object.parent?.userData?.dogId || h.object.parent?.parent?.userData?.dogId);
     const dogHit = hit && dogOf(hit.object);
     if (dogHit && near && dogHit === near.id) keys.push('KeyE');
-    else if (dogHit) ui.toast(`${DOGS[dogHit].name}에게 더 가까이 가세요`);
+    else if (dogHit) {   // 멀리 있는 강아지를 누르면 다가가서 쓰다듬는다
+      const dp = dogs[dogHit].mesh.position, dx = me.x - dp.x, dz = me.z - dp.z, l = Math.hypot(dx, dz) || 1;
+      walkTo(dp.x + (dx / l) * 0.9, dp.z + (dz / l) * 0.9, { pet: dogHit });
+    }
     else if (hit?.object.userData.sofa) goSitOnSofa(hit.point.x);
+    else { const fp = floorPoint(ray); if (fp) walkTo(fp.x, fp.z); }
   }
   for (const k of keys) {
     if (k === 'KeyE') {
@@ -203,7 +234,7 @@ function handleActions() {
     else if (k === 'Digit2') net.send({ t: 'cmd', type: 'sit' });
     else if (k === 'Digit3') net.send({ t: 'cmd', type: 'down' });
     else if (k === 'Digit4') { net.send({ t: 'come' }); me.avatar.say('히로! 봉구! 이리 와~'); }
-    else if (k === 'KeyC') { if (me.sit) standUp(); else { me.auto = null; me.sit = 'floor'; ui.toast('바닥에 앉았어요. 움직이면 일어나요'); } }
+    else if (k === 'KeyC') { if (me.sit) standUp(); else { me.auto = null; me.sit = 'floor'; ui.toast('바닥에 앉았어요. 다른 곳을 누르면 일어나요'); } }
     else if (k === 'KeyF') { if (dist(me.x, me.z, BOWL.x, BOWL.z) > RANGE.bowl) ui.toast('사료 그릇 가까이 가세요 (창가 왼쪽)'); else net.send({ t: 'feed' }); }
   }
   // 안내 문구
@@ -227,17 +258,19 @@ function movePlayer(dt) {
     if (len < 0.06) {
       me.auto.wps.shift();
       if (me.auto.wps.length === 0) {
-        if (me.auto.then === 'sofa') { me.x = wp.x; me.z = SOFA.seatZ; me.ry = Math.PI; me.sit = 'sofa'; ui.toast('소파에 앉았어요 🛋️ 움직이면 일어나요'); }
+        const then = me.auto.then;
+        if (then === 'sofa') { me.x = wp.x; me.z = SOFA.seatZ; me.ry = Math.PI; me.sit = 'sofa'; ui.toast('소파에 앉았어요 🛋️ 다른 곳을 누르면 일어나요'); }
+        else if (then?.pet) { const dp = dogs[then.pet].mesh.position; me.ry = Math.atan2(dp.x - me.x, dp.z - me.z); if (dist(me.x, me.z, dp.x, dp.z) <= RANGE.pet) net?.send(me.treat ? { t: 'give', dog: then.pet } : { t: 'pet', dog: then.pet }); }
         me.auto = null;
       }
     } else {
-      const step = Math.min(len, 2.6 * dt), nx = me.x + (dx / len) * step, nz = me.z + (dz / len) * step;
+      const step = Math.min(len, (me.auto.run ? 4.8 : 2.8) * dt), nx = me.x + (dx / len) * step, nz = me.z + (dz / len) * step;
       let progressed = false;
       if (isFree(nx, me.z, PLAYER_RADIUS)) { me.x = nx; progressed = true; }
       if (isFree(me.x, nz, PLAYER_RADIUS)) { me.z = nz; progressed = true; }
       me.ry = Math.atan2(dx, dz); moving = true;
       me.auto.stuck = progressed ? 0 : me.auto.stuck + dt;
-      if (me.auto.stuck > 0.6) { me.auto = null; ui.toast('길이 막혔어요. 소파 앞으로 걸어가 다시 눌러보세요'); }
+      if (me.auto.stuck > 0.4) { if (me.auto.then === 'sofa') ui.toast('길이 막혔어요. 소파 앞을 먼저 눌러 걸어간 뒤 다시 눌러보세요'); me.auto = null; }
     }
   }
   if (f !== 0 || r !== 0) {
@@ -252,7 +285,8 @@ function movePlayer(dt) {
     if (isFree(me.x, nz, PLAYER_RADIUS)) me.z = nz;
     me.ry = Math.atan2(dx, dz);
   }
-  me.anim = me.sit === 'sofa' ? 'sit' : me.sit === 'floor' ? 'floor' : moving ? (run ? 'run' : 'walk') : 'idle';
+  me.anim = me.sit === 'sofa' ? 'sit' : me.sit === 'floor' ? 'floor' : moving ? (run || me.auto?.run ? 'run' : 'walk') : 'idle';
+  if (!me.auto || me.auto.then === 'sofa') marker.visible = false; else marker.scale.setScalar(1 + 0.15 * Math.sin(performance.now() / 120));
   me.avatar.mesh.position.set(me.x, 0, me.z);
   me.avatar.mesh.rotation.y = THREE.MathUtils.lerp(me.avatar.mesh.rotation.y, me.ry + Math.round((me.avatar.mesh.rotation.y - me.ry) / (Math.PI * 2)) * Math.PI * 2, 1 - Math.exp(-14 * dt));
   me.avatar.update(dt, me.anim, me.treat);
