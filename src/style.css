@@ -36,7 +36,7 @@ button{ font:inherit; cursor:pointer; color:var(--ink); -webkit-tap-highlight-co
 .online b{ display:block; margin-bottom:3px; }
 .online .pl{ display:flex; align-items:center; gap:6px; color:var(--sub); }
 .online .pl i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
-.prompt{ position:absolute; left:50%; top:58%; transform:translateX(-50%); background:rgba(31,41,51,.78); color:#fff; padding:7px 14px; border-radius:20px; font-size:13px; white-space:nowrap; }
+.prompt{ position:absolute; left:50%; top:auto; bottom:84px; transform:translateX(-50%); background:rgba(31,41,51,.78); color:#fff; padding:7px 14px; border-radius:20px; font-size:13px; white-space:nowrap; }
 .prompt{ cursor:pointer; touch-action:manipulation; }
 .prompt:active{ transform:translateX(-50%) scale(.95); }
 .prompt b{ background:#fff; color:var(--ink); border-radius:6px; padding:0 6px; margin-right:6px; font-size:12px; }
@@ -95,10 +95,10 @@ body.touch .actions button i{ font-size:21px; line-height:1.1; margin:0; }
 body.touch .actions button span{ font-size:11px; font-weight:800; letter-spacing:-.3px; }
 body.touch .actions button:active{ transform:scale(.93); background:#fff; }
 body.touch .actions button.on{ background:var(--accent); color:#fff; }
-body.touch .chat{ left:10px; right:auto; bottom:calc(134px + env(safe-area-inset-bottom)); width:min(78%,300px); pointer-events:none; }
+body.touch .chat{ left:10px; right:auto; bottom:calc(176px + env(safe-area-inset-bottom)); width:min(78%,300px); pointer-events:none; }
 body.touch .chat-log{ max-height:64px; } body.touch .chat-log div{ font-size:12.5px; }
 body.touch #chat-input{ position:fixed; left:10px; right:10px; top:calc(86px + env(safe-area-inset-top)); width:auto; padding:12px 14px; pointer-events:auto; box-shadow:0 8px 24px rgba(0,0,0,.3); }
-body.touch .prompt{ top:46%; font-size:15px; font-weight:700; padding:11px 20px; background:var(--accent); box-shadow:0 6px 18px rgba(0,0,0,.3); }
+body.touch .prompt{ top:auto; bottom:calc(132px + env(safe-area-inset-bottom)); font-size:13px; font-weight:700; padding:8px 16px; background:var(--accent); box-shadow:0 4px 12px rgba(0,0,0,.3); }
 body.touch .prompt::before{ content:'👆 '; } body.touch .prompt b{ display:none; }
 body.touch .toast{ top:calc(92px + env(safe-area-inset-top)); font-size:14px; max-width:86%; text-align:center; white-space:normal; word-break:keep-all; }
 @media (orientation:landscape) and (max-height:480px){ body.touch .dogs{ right:auto; width:340px; } body.touch .actions{ left:auto; width:min(60%,520px); grid-template-columns:repeat(8,1fr); } body.touch .actions button{ height:50px; } body.touch .chat{ bottom:calc(70px + env(safe-area-inset-bottom)); } }

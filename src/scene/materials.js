@@ -33,11 +33,12 @@ export function canvasTexture(w, h, draw, repeat) {
 export function makeLabel(text, { bg = 'rgba(31,41,51,.75)', fg = '#fff', size = 28, pad = 14 } = {}) {
   const c = document.createElement('canvas');
   const ctx = c.getContext('2d');
-  ctx.font = `700 ${size}px 'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif`;
+  const font = `700 ${size}px 'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif`;
+  ctx.font = font;
   const tw = Math.ceil(ctx.measureText(text).width);
   c.width = tw + pad * 2; c.height = size + pad * 1.4;
   const ctx2 = c.getContext('2d');
-  ctx2.font = ctx.font;
+  ctx2.font = font;   // 캔버스 크기를 바꾸면 font 가 초기화되므로 다시 지정
   ctx2.fillStyle = bg;
   const r = c.height / 2;
   ctx2.beginPath(); ctx2.roundRect(0, 0, c.width, c.height, r); ctx2.fill();

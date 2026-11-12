@@ -5,7 +5,7 @@ import { felt, sphere, cyl, box, makeLabel } from './materials.js';
 const damp = (a, b, k, dt) => THREE.MathUtils.lerp(a, b, 1 - Math.exp(-k * dt));
 
 export const AVATAR_SCALE = 0.5;   // 사람이 화면을 가리지 않게 절반 크기
-const LABEL_K = 1.25 / AVATAR_SCALE; // 이름표·말풍선은 읽을 수 있는 크기로 유지
+const LABEL_K = 0.8 / AVATAR_SCALE; // 이름표·말풍선은 읽을 수 있는 크기로 유지
 
 export function createAvatar(color, name) {
   const g = new THREE.Group(); g.scale.setScalar(AVATAR_SCALE);
